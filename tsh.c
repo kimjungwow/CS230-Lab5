@@ -2,6 +2,8 @@
  * tsh - A tiny shell program with job control
  * 
  * <Put your name and login ID here>
+ * Kim Jungwoo
+ * cs20140681
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +144,8 @@ int main(int argc, char **argv)
 	    fflush(stdout);
 	    exit(0);
 	}
-
+    printf("\nThis is cmdline         %s\n",cmdline);
+    
 	/* Evaluate the command line */
 	eval(cmdline);
 	fflush(stdout);
@@ -165,6 +168,15 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+    
+    char* evalargv[MAXARGS];
+    int evalbg,i;
+    evalbg = parseline(cmdline,evalargv); 
+    printf("\nHere is argv array\n");
+
+
+    builtin_cmd(evalargv);
+    listjobs(jobs);
     return;
 }
 
@@ -218,6 +230,21 @@ int parseline(const char *cmdline, char **argv)
     if (argc == 0)  /* ignore blank line */
 	return 1;
 
+
+/////////////////////////////////////////////
+int i;
+    printf("argc is %d\n",argc);
+    for (i=0; i<argc;i++) {
+    int j=0;
+    
+    printf("%dth value = %s\n", i, argv[i]);
+    
+        
+    } 
+/////////////////////////////////////////////
+
+
+
     /* should the job run in the background? */
     if ((bg = (*argv[argc-1] == '&')) != 0) {
 	argv[--argc] = NULL;
@@ -231,6 +258,10 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv) 
 {
+    
+    if (!strncmp(argv[0], "quit", 4)) {
+     sigquit_handler(1);
+    }
     return 0;     /* not a builtin command */
 }
 
