@@ -186,7 +186,6 @@ void eval(char *cmdline)
     sigemptyset(&childblock);
     sigaddset(&childblock, SIGCHLD);
 
-    
     clearjob(&ourjob);
     clearjob(&ourchild);
     strcpy(buf, cmdline);
@@ -409,11 +408,46 @@ void waitfg(pid_t pid)
     // }
 
     pid_t wpid = waitpid(pid, &status, WUNTRACED);
+    // printf("NOW, Something\n");
+    struct job_t *prevjob;
+    prevjob = getjobpid(jobs, wpid);
+    struct job_t changedjob;
+    clearjob(&changedjob);
+
+    // strcpy(changedjob.cmdline, prevjob->cmdline);
+    // changedjob.jid = prevjob->jid;
+    // changedjob.pid = prevjob->pid;
+    // changedjob.state = prevjob->state;
     if (wpid < 0)
         unix_error("waitpid: waitpid error");
-    if (WIFSIGNALED(status) || WIFEXITED(status))
-        deletejob(jobs, wpid);
+    if (WIFSTOPPED(status))
+    {
 
+        // sigtstp_handler(0);
+        printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(fgpid(jobs)), fgpid(jobs));
+        struct job_t changedjob;
+        clearjob(&changedjob);
+        strcpy(changedjob.cmdline, getjobpid(jobs, fgpid(jobs))->cmdline);
+        changedjob.jid = getjobpid(jobs, fgpid(jobs))->jid;
+        changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid;
+        deletejob(jobs, changedjob.pid);
+        changedjob.state = ST;
+        nextjid = changedjob.jid;
+        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
+
+        // printf("Job [%d] (%d) stopped by signal 20\n", prevjob->jid, prevjob->pid);
+        // deletejob(jobs, prevjob->pid);
+        // changedjob.state = ST;
+        // nextjid = changedjob.jid;
+        // addjob(jobs, changedjob.pid, ST, changedjob.cmdline);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        printf("Job [%d] (%d) terminated by signal 2\n", pid2jid(fgpid(jobs)), fgpid(jobs));
+        deletejob(jobs, fgpid(jobs));
+    }
+    else if (WIFEXITED(status))
+        deletejob(jobs, wpid);
     return;
 }
 
@@ -441,6 +475,7 @@ void sigchld_handler(int sig)
     if (pid > 0)
     {
         // sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+
         deletejob(jobs, pid);
         // sigprocmask(SIG_SETMASK, &prev_all, NULL);
     }
@@ -465,8 +500,8 @@ void sigint_handler(int sig)
 
     if (fgpid(jobs) > 0)
         kill(-fgpid(jobs), SIGINT);
-    printf("Job [%d] (%d) terminated by signal 2\n", pid2jid(fgpid(jobs)), fgpid(jobs));
-    deletejob(jobs, fgpid(jobs));
+    // printf("Job [%d] (%d) terminated by signal 2\n", pid2jid(fgpid(jobs)), fgpid(jobs));
+    // deletejob(jobs, fgpid(jobs));
 
     return;
 }
@@ -478,24 +513,24 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig)
 {
-    
-    
+
     if (fgpid(jobs) > 0)
         kill(-fgpid(jobs), SIGTSTP);
     // listjobs(jobs);
     // printf("DAMN\n");
 
     // printf("target pid is %d and jid is %d\n",fgpid(jobs), pid2jid(fgpid(jobs)));
-    printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(fgpid(jobs)), fgpid(jobs));
-    struct job_t changedjob;
-    clearjob(&changedjob);
-    strcpy(changedjob.cmdline, getjobpid(jobs, fgpid(jobs))->cmdline);
-    changedjob.jid = getjobpid(jobs, fgpid(jobs))->jid;
-    changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid;
-    deletejob(jobs, changedjob.pid);
-    changedjob.state = ST;
-    nextjid = changedjob.jid;
-    addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
+
+    // printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(fgpid(jobs)), fgpid(jobs));
+    // struct job_t changedjob;
+    // clearjob(&changedjob);
+    // strcpy(changedjob.cmdline, getjobpid(jobs, fgpid(jobs))->cmdline);
+    // changedjob.jid = getjobpid(jobs, fgpid(jobs))->jid;
+    // changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid;
+    // deletejob(jobs, changedjob.pid);
+    // changedjob.state = ST;
+    // nextjid = changedjob.jid;
+    // addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
 
     return;
 }
