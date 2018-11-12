@@ -185,6 +185,8 @@ void eval(char *cmdline)
     sigaddset(&new, SIGINT);
     sigemptyset(&childblock);
     sigaddset(&childblock, SIGCHLD);
+
+    
     clearjob(&ourjob);
     clearjob(&ourchild);
     strcpy(buf, cmdline);
@@ -218,7 +220,6 @@ void eval(char *cmdline)
             ourjob.state = (!bg) ? FG : BG;
             strcpy(ourjob.cmdline, cmdline);
             addjob(jobs, ourjob.pid, ourjob.state, cmdline);
-            
         }
         if (!bg)
         {
@@ -231,7 +232,6 @@ void eval(char *cmdline)
             printf("[%d] (%d) %s", ourjob.jid, ourjob.pid, cmdline);
             sigprocmask(SIG_SETMASK, &prev, NULL);
         }
-        
     }
 
     return;
@@ -374,17 +374,17 @@ void do_bgfg(char **argv)
     {
         changedjob.state = BG;
         deletejob(jobs, changedjob.pid);
+        nextjid = changedjob.jid; //To deal with situation when we delete job which doesn't have the biggest jid.
         addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
         kill(-changedjob.pid, SIGCONT);
         printf("[%d] (%d) %s", changedjob.jid, changedjob.pid, changedjob.cmdline);
     }
     else //fg
     {
-
         deletejob(jobs, changedjob.pid);
         changedjob.state = FG;
+        nextjid = changedjob.jid;
         addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
-        // printf("I did fg to jid [%d]\n", pid2jid(changedjob.pid));
         kill(-changedjob.pid, SIGCONT);
         waitfg(changedjob.pid);
     }
@@ -401,6 +401,13 @@ void waitfg(pid_t pid)
     }*/
 
     int status;
+
+    // sigset_t prev;
+    // pid_t wpid;
+    // while((wpid=waitpid(pid, &status, WNOHANG))==0) {
+    //     sigsuspend(&prev);
+    // }
+
     pid_t wpid = waitpid(pid, &status, WUNTRACED);
     if (wpid < 0)
         unix_error("waitpid: waitpid error");
@@ -426,10 +433,10 @@ void sigchld_handler(int sig)
 
     // sigset_t mask_all, prev_all;
     // sigfillset(&mask_all);
-    
+
     pid_t pid;
     int status;
-        int olderrno = errno;
+    int olderrno = errno;
     pid = waitpid(-1, &status, WNOHANG);
     if (pid > 0)
     {
@@ -437,13 +444,6 @@ void sigchld_handler(int sig)
         deletejob(jobs, pid);
         // sigprocmask(SIG_SETMASK, &prev_all, NULL);
     }
-
-
-
-
-
-
-
 
     // while ((pid = waitpid(-1, NULL, 0)) > 0)
     // {
@@ -462,7 +462,9 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig)
 {
-    kill(-fgpid(jobs), SIGINT);
+
+    if (fgpid(jobs) > 0)
+        kill(-fgpid(jobs), SIGINT);
     printf("Job [%d] (%d) terminated by signal 2\n", pid2jid(fgpid(jobs)), fgpid(jobs));
     deletejob(jobs, fgpid(jobs));
 
@@ -476,7 +478,14 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig)
 {
-    kill(-fgpid(jobs), SIGTSTP);
+    
+    
+    if (fgpid(jobs) > 0)
+        kill(-fgpid(jobs), SIGTSTP);
+    // listjobs(jobs);
+    // printf("DAMN\n");
+
+    // printf("target pid is %d and jid is %d\n",fgpid(jobs), pid2jid(fgpid(jobs)));
     printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(fgpid(jobs)), fgpid(jobs));
     struct job_t changedjob;
     clearjob(&changedjob);
@@ -485,6 +494,7 @@ void sigtstp_handler(int sig)
     changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid;
     deletejob(jobs, changedjob.pid);
     changedjob.state = ST;
+    nextjid = changedjob.jid;
     addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);
 
     return;
