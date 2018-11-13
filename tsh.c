@@ -328,7 +328,6 @@ int builtin_cmd(char **argv)
         do_bgfg(argv); // Another function to deal with fg and bg.
         return 1;
     }
-
     return 0; /* not a builtin command */
 }
 
