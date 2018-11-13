@@ -173,18 +173,18 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline)
 {
-    char *argv[MAXARGS]; // It will store useful information gotten from parseline().
-    char buf[MAXLINE]; // This is temp to given cmdline.
-    int bg; // return value of parseline().
-    struct job_t ourchild, ourjob; // To handle our jobs, made with fork().
+    char *argv[MAXARGS];            // It will store useful information gotten from parseline().
+    char buf[MAXLINE];              // This is temp to given cmdline.
+    int bg;                         // return value of parseline().
+    struct job_t ourchild, ourjob;  // To handle our jobs, made with fork().
     sigset_t all, childblock, prev; // To block or unblock signals.
-    sigfillset(&all); // sigset_t all blocks all
-    sigemptyset(&childblock); 
+    sigfillset(&all);               // sigset_t all blocks all
+    sigemptyset(&childblock);
     sigaddset(&childblock, SIGCHLD); // To block SIGCHLD
 
     clearjob(&ourjob); // we have to do clearjob() before we use it
     clearjob(&ourchild);
-    strcpy(buf, cmdline); // copy cmdline to buf
+    strcpy(buf, cmdline);      // copy cmdline to buf
     bg = parseline(buf, argv); // Parse given cmdline!
 
     if (argv[0] == NULL) // Neglect empty line
@@ -192,15 +192,15 @@ void eval(char *cmdline)
     if (!builtin_cmd(argv)) // builtin commands return in builtin_cmd(). We will handle other commands which don't return in builtin_cmd().
     {
         sigprocmask(SIG_BLOCK, &childblock, &prev); // BLOCK SIGCHLD
-        if ((ourjob.pid = fork()) < 0) // To handle fork error
+        if ((ourjob.pid = fork()) < 0)              // To handle fork error
             unix_error("fork error");
         if (ourjob.pid == 0) // This is Child part!
         {
-            setpgid(0, 0); // Child process is put in process group whose GID is identical to child's PID
-            ourchild.pid = 0; // Make it's own pid zero.
-            ourchild.state = (!bg) ? FG : BG; // We can determine its state with bg value. If bg == 0, which means it is Background state, then set state as BG, and vice versa.            
+            setpgid(0, 0);                                       // Child process is put in process group whose GID is identical to child's PID
+            ourchild.pid = 0;                                    // Make it's own pid zero.
+            ourchild.state = (!bg) ? FG : BG;                    // We can determine its state with bg value. If bg == 0, which means it is Background state, then set state as BG, and vice versa.
             addjob(jobs, ourchild.pid, ourchild.state, cmdline); // Add this job which is child to our joblist.
-            sigprocmask(SIG_SETMASK, &prev, NULL); // UNBLOCK SIGCHLD
+            sigprocmask(SIG_SETMASK, &prev, NULL);               // UNBLOCK SIGCHLD
 
             if (execve(argv[0], argv, environ) < 0) // To handle error, such as not defined command
             {
@@ -211,22 +211,22 @@ void eval(char *cmdline)
 
         if (!strncmp(argv[0], ".", 1)) // We don't need to think about echo command. So let's check if the first letter is ".", not "/".
         {
-            sigprocmask(SIG_BLOCK, &all, NULL); // BLOCK ALL
-            ourjob.jid = nextjid; // Just fill jid value of ourjob struct.
-            ourjob.state = (!bg) ? FG : BG; // Also choose state of ourjob struct.
-            strcpy(ourjob.cmdline, cmdline); // cmdline of ourjob struct comes from given cmdline.
+            sigprocmask(SIG_BLOCK, &all, NULL);              // BLOCK ALL
+            ourjob.jid = nextjid;                            // Just fill jid value of ourjob struct.
+            ourjob.state = (!bg) ? FG : BG;                  // Also choose state of ourjob struct.
+            strcpy(ourjob.cmdline, cmdline);                 // cmdline of ourjob struct comes from given cmdline.
             addjob(jobs, ourjob.pid, ourjob.state, cmdline); // Now, add this job which is parent to our joblist.
         }
         if (!bg)
-        { //This is Foreground Part! We have to wait until this job is done.
+        {                                          //This is Foreground Part! We have to wait until this job is done.
             sigprocmask(SIG_SETMASK, &prev, NULL); // UNBLOCK
-            waitfg(ourjob.pid); // To wait foreground job to complete
+            waitfg(ourjob.pid);                    // To wait foreground job to complete
         }
         else
-        { //This is Background Part! We don't need to wait this job to complete.
-            ourjob.state = BG; // To be sure about state.
+        {                                                            //This is Background Part! We don't need to wait this job to complete.
+            ourjob.state = BG;                                       // To be sure about state.
             printf("[%d] (%d) %s", ourjob.jid, ourjob.pid, cmdline); // We need to this, to get score in this lab.
-            sigprocmask(SIG_SETMASK, &prev, NULL); //UNBLOCK
+            sigprocmask(SIG_SETMASK, &prev, NULL);                   //UNBLOCK
         }
     }
 
@@ -302,7 +302,7 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv)
 {
-    
+
     if (!strncmp(argv[0], "quit", 4)) //Execute quit command immediately.
     {
         exit(0);
@@ -320,6 +320,7 @@ int builtin_cmd(char **argv)
             return 1;
         }
         if (!(argv[1][0] == 37 || (argv[1][0] >= 48 && argv[1][0] <= 57))) // Error without number, but with letter.
+            
         {
             printf("%s: argument must be a PID or %%jobid\n", argv[0]);
             return 1;
@@ -336,14 +337,14 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
-    struct job_t changedjob; // We will add this job.
-    struct job_t *prevjob; // We will delete this job.
-    clearjob(&changedjob); // We have to do clearjob() before use job_t struct.
-    pid_t thatpid;  // If pid value is given in fg or bg
-    int thatjid;  // If jid value is given in fg or bg
+    struct job_t changedjob;        // We will add this job.
+    struct job_t *prevjob;          // We will delete this job.
+    clearjob(&changedjob);          // We have to do clearjob() before use job_t struct.
+    pid_t thatpid;                  // If pid value is given in fg or bg
+    int thatjid;                    // If jid value is given in fg or bg
     if (!strncmp(argv[1], "%%", 1)) // If jid value is given.
     {
-        thatjid = atoi((argv[1]) + 1); // jid value comes after "%"
+        thatjid = atoi((argv[1]) + 1);        // jid value comes after "%"
         if (getjobjid(jobs, thatjid) == NULL) // If given jid value doesn't exist in jobslist
         {
             printf("%s: No such job\n", argv[1]);
@@ -353,7 +354,7 @@ void do_bgfg(char **argv)
     }
     else
     {
-        thatpid = (pid_t)(atoi(argv[1])); // pid value is given
+        thatpid = (pid_t)(atoi(argv[1]));     // pid value is given
         if (getjobpid(jobs, thatpid) == NULL) // If given pid value doesn't exist in jobslist
         {
             printf("(%d): No such process\n", atoi(argv[1]));
@@ -362,26 +363,26 @@ void do_bgfg(char **argv)
         prevjob = getjobpid(jobs, thatpid); // job which we will delete
     }
     strcpy(changedjob.cmdline, prevjob->cmdline); // Copy cmdline from prevjob to changedjob.
-    changedjob.jid = prevjob->jid;  // Copy jid from prevjob to changedjob.
-    changedjob.pid = prevjob->pid;  // Copy pid from prevjob to changedjob.
-    changedjob.state = prevjob->state;  // Copy state from prevjob to changedjob.
-    if (!strncmp(argv[0], "bg", 2)) // This is bg part
+    changedjob.jid = prevjob->jid;                // Copy jid from prevjob to changedjob.
+    changedjob.pid = prevjob->pid;                // Copy pid from prevjob to changedjob.
+    changedjob.state = prevjob->state;            // Copy state from prevjob to changedjob.
+    if (!strncmp(argv[0], "bg", 2))               // This is bg part
     {
-        changedjob.state = BG; // Obviously state should be BG
-        deletejob(jobs, changedjob.pid); // Before addjob(), we have to deletejob()
-        nextjid = changedjob.jid; //To deal with situation when we delete job which doesn't have the biggest jid.
-        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline); // We add job to change the value of specific pid(or jid).
-        kill(-changedjob.pid, SIGCONT); // Send signal SIGCONT
+        changedjob.state = BG;                                                      // Obviously state should be BG
+        deletejob(jobs, changedjob.pid);                                            // Before addjob(), we have to deletejob()
+        nextjid = changedjob.jid;                                                   //To deal with situation when we delete job which doesn't have the biggest jid.
+        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);         // We add job to change the value of specific pid(or jid).
+        kill(-changedjob.pid, SIGCONT);                                             // Send signal SIGCONT
         printf("[%d] (%d) %s", changedjob.jid, changedjob.pid, changedjob.cmdline); // We need to print this to get score in this lab.
     }
     else // This is fg part
     {
-        deletejob(jobs, changedjob.pid); // Before addjob(), we have to deletejob()
-        changedjob.state = FG; // Obviously state should be FG
-        nextjid = changedjob.jid; //To deal with situation when we delete job which doesn't have the biggest jid.
-        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);// We add job to change the value of specific pid(or jid).
-        kill(-changedjob.pid, SIGCONT);// Send signal SIGCONT
-        waitfg(changedjob.pid); // Since this is Foreground, we have to wait this to complete.
+        deletejob(jobs, changedjob.pid);                                    // Before addjob(), we have to deletejob()
+        changedjob.state = FG;                                              // Obviously state should be FG
+        nextjid = changedjob.jid;                                           //To deal with situation when we delete job which doesn't have the biggest jid.
+        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline); // We add job to change the value of specific pid(or jid).
+        kill(-changedjob.pid, SIGCONT);                                     // Send signal SIGCONT
+        waitfg(changedjob.pid);                                             // Since this is Foreground, we have to wait this to complete.
     }
     return;
 }
@@ -392,34 +393,35 @@ void do_bgfg(char **argv)
 void waitfg(pid_t pid)
 {
 
-    int status; // This is useful to check process's status.
+    int status;                                    // This is useful to check process's status.
     pid_t wpid = waitpid(pid, &status, WUNTRACED); // Use WUNTRACED option to deal with both terminated and stopped
-    struct job_t *prevjob; // We will delete this job
-    prevjob = getjobpid(jobs, wpid); // Find by using wpid we got from waitpid()
+
     struct job_t changedjob; // We will add this job
-    clearjob(&changedjob); // We have to do clearjob() before we use job_t struct.
+    clearjob(&changedjob);   // We have to do clearjob() before we use job_t struct.
 
     if (wpid < 0) // To handle waitpid error
         unix_error("waitpid: waitpid error");
     if (WIFSTOPPED(status)) // Handle situation where process is stopped, meaning SIGTSTP came.
     {
         printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(fgpid(jobs)), fgpid(jobs)); // We have to print this to get score in this lab
-        struct job_t changedjob; // We will add this job
-        clearjob(&changedjob); // We have to do clearjob() before we use job_t struct.
-        strcpy(changedjob.cmdline, getjobpid(jobs, fgpid(jobs))->cmdline); // Get cmdline value for changedjob
-        changedjob.jid = getjobpid(jobs, fgpid(jobs))->jid; // Get jid value for changedjob
-        changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid; // Get pid value for changedjob
-        deletejob(jobs, changedjob.pid); // Delete unchangedjob
-        changedjob.state = ST; // Obviously state should be ST, because process is stopped
-        nextjid = changedjob.jid; //To deal with situation when we delete job which doesn't have the biggest jid.
-        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline); // We add job to change the value of specific pid(or jid).
+        struct job_t changedjob;                                                           // We will add this job
+        clearjob(&changedjob);                                                             // We have to do clearjob() before we use job_t struct.
+        strcpy(changedjob.cmdline, getjobpid(jobs, fgpid(jobs))->cmdline);                 // Get cmdline value for changedjob
+        changedjob.jid = getjobpid(jobs, fgpid(jobs))->jid;                                // Get jid value for changedjob
+        changedjob.pid = getjobpid(jobs, fgpid(jobs))->pid;                                // Get pid value for changedjob
+        deletejob(jobs, changedjob.pid);                                                   // Delete unchangedjob
+        changedjob.state = ST;                                                             // Obviously state should be ST, because process is stopped
+        nextjid = changedjob.jid;                                                          //To deal with situation when we delete job which doesn't have the biggest jid.
+        addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);                // We add job to change the value of specific pid(or jid).
     }
     else if (WIFSIGNALED(status)) // Handle situation where process is terminated, meaning SIGINT came.
     {
+
         printf("Job [%d] (%d) terminated by signal 2\n", pid2jid(fgpid(jobs)), fgpid(jobs)); // We have to print this to get score in this lab
-        deletejob(jobs, fgpid(jobs)); // Delete terminated process
+        deletejob(jobs, fgpid(jobs));                                                        // Delete terminated process
     }
     else if (WIFEXITED(status)) // We also think about this case, terminated without signal
+
         deletejob(jobs, wpid); // Delete terminated process
     return;
 }
@@ -437,14 +439,31 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig)
 {
-    pid_t pid; // return value of waitpid()
-    int status; // It is needed for waitpid()
+    pid_t pid;            // return value of waitpid()
+    int status;           // It is needed for waitpid()
     int olderrno = errno; // Keep errno for usage in future
-    pid = waitpid(-1, &status, WNOHANG); // We use WNOHANG option, to do our own job with waiting child to be terminated
-    if (pid > 0) // We only delete job from jobslist when pid is positive value
+
+    while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) // Handle all children
     {
-        deletejob(jobs, pid); // Delete job from jobslist
+        if (WIFSTOPPED(status)) // Handle situation where process is stopped, meaning SIGTSTP came.
+        {
+            printf("Job [%d] (%d) stopped by signal 20\n", pid2jid(pid), fgpid(jobs)); // We have to print this to get score in this lab
+            struct job_t changedjob;                                                           // We will add this job
+            clearjob(&changedjob);                                                             // We have to do clearjob() before we use job_t struct.
+            strcpy(changedjob.cmdline, getjobpid(jobs, pid)->cmdline);                 // Get cmdline value for changedjob
+            changedjob.jid = getjobpid(jobs, pid)->jid;                                // Get jid value for changedjob
+            changedjob.pid = getjobpid(jobs, pid)->pid;                                // Get pid value for changedjob
+            deletejob(jobs, changedjob.pid);                                                   // Delete unchangedjob
+            changedjob.state = ST;                                                             // Obviously state should be ST, because process is stopped
+            nextjid = changedjob.jid;                                                          //To deal with situation when we delete job which doesn't have the biggest jid.
+            addjob(jobs, changedjob.pid, changedjob.state, changedjob.cmdline);                // We add job to change the value of specific pid(or jid).
+        }
+        else // Terminated case, which isn't stopped case. 
+        {
+            deletejob(jobs, pid); // Then, we just delete this job.
+        }
     }
+
     errno = olderrno; // Get stored errno value
     return;
 }
@@ -457,9 +476,8 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig)
 {
 
-    if (fgpid(jobs) > 0) // When there is foreground job in jobslist,
+    if (fgpid(jobs) > 0)            // When there is foreground job in jobslist,
         kill(-fgpid(jobs), SIGINT); // Send SIGINT to that foreground job.
-
 
     return;
 }
@@ -472,7 +490,7 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig)
 {
 
-    if (fgpid(jobs) > 0) // When there is foreground job in jobslist,
+    if (fgpid(jobs) > 0)             // When there is foreground job in jobslist,
         kill(-fgpid(jobs), SIGTSTP); // Send SIGTSTP to that foreground job.
 
     return;
